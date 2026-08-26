@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lists 3.0">
+<link rel="apple-touch-icon" href="icon.PNG">
+<link rel="icon" type="image/png" href="icon.PNG">
+<title>Lists 3.0</title>
+<style>
+:root{
+  --bg:#f7f7f8;--surface:#fff;--surface2:#f0f0f2;--text:#202124;--muted:#70757a;
+  --border:#dedee2;--accent:#e8f0fe;--accent-strong:#3b78e7;--danger:#d93025;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.app{min-height:100vh;display:flex;flex-direction:column}
+.screen{display:none;min-height:100vh;padding:env(safe-area-inset-top) 18px env(safe-area-inset-bottom)}
+.screen.active{display:flex;flex-direction:column}
+.main-screen{align-items:center}
+.main-title{margin:56px 0 34px;font-size:30px;font-weight:700;text-align:center}
+.main-buttons{width:min(420px,100%);display:flex;flex-direction:column;gap:18px}
+.main-btn{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:18px;padding:18px 20px;color:var(--text);font-size:18px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.main-btn:active,.top-btn:active,.icon-btn:active,.text-btn:active{transform:scale(.98)}
+.theme-wrap{position:absolute;top:calc(env(safe-area-inset-top) + 14px);right:16px}
+.theme-button{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:8px 12px;font-size:14px;color:#111;font-weight:600}
+.theme-menu{position:absolute;right:0;top:44px;width:292px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.14);z-index:20;display:none}
+.theme-menu.open{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.theme-option{width:100%;min-height:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;border:1px solid var(--border);background:transparent;padding:8px;border-radius:12px;text-align:center;color:var(--text)}
+.theme-option.selected{background:var(--accent);outline:2px solid var(--accent-strong)}
+.swatches{display:flex;gap:4px}
+.swatch{width:54px;height:28px;border-radius:7px;border:1px solid rgba(0,0,0,.13)}
+.theme-name{font-size:13px;font-weight:600}
+
+.topbar{height:64px;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto}
+.topbar-left,.topbar-right{width:110px;display:flex;align-items:center;gap:7px}
+.topbar-right{justify-content:flex-end;gap:7px;white-space:nowrap}
+.topbar-center{font-size:19px;font-weight:700}
+.icon-btn,.text-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:12px;min-width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center}
+.text-btn{padding:0 13px;font-size:15px;font-weight:600;white-space:nowrap;min-width:max-content}
+.trash-btn{color:var(--danger)}.trash-svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block}
+.editor-body,.saved-body{width:min(760px,100%);margin:0 auto;flex:1}
+.list-name-wrap{margin:12px 0 14px}
+.list-name{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:13px 14px;outline:0;color:var(--text);font-size:18px}
+.list-name:focus{border-color:var(--accent-strong)}
+.mode-bar{display:flex;align-items:center;justify-content:space-between;margin:0 0 14px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.mode-label{font-size:14px;font-weight:650}.mode-help{font-size:12px;color:var(--muted);margin-top:2px}
+.switch{position:relative;width:48px;height:28px}.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#bbb;border-radius:99px;transition:.2s}
+.slider:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.switch input:checked+.slider{background:var(--accent-strong)}
+.switch input:checked+.slider:before{transform:translateX(20px)}
+.list-area{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.task-row{display:grid;grid-template-columns:42px minmax(0,1fr) 38px;align-items:start;gap:0;border-bottom:1px solid var(--border);padding:5px 8px}
+.task-row:last-child{border-bottom:0}
+.task-row.no-check{grid-template-columns:42px minmax(0,1fr)}
+.number{padding:8px 4px;color:var(--muted);font-size:16px;text-align:center;cursor:grab;user-select:none;touch-action:none}.number:active{cursor:grabbing}
+.task-input{display:block;width:100%;min-width:0;min-height:32px;border:0;outline:0;background:transparent;color:var(--text);font-size:16px;padding:7px 4px;resize:none;overflow:hidden;line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
+.check{width:28px;height:28px;border-radius:50%;border:2px solid var(--muted);background:transparent;margin:5px auto;color:var(--surface);display:flex;align-items:center;justify-content:center}
+.check.checked{background:var(--accent-strong);border-color:var(--accent-strong)}
+.task-row.no-check .check{display:none!important}
+.completed-title{font-size:15px;font-weight:700;color:var(--muted);margin:20px 3px 8px}
+.saved-list{display:flex;flex-direction:column;gap:10px}
+.saved-card{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px}
+.saved-card.selected{outline:2px solid var(--accent-strong);background:var(--surface2)}
+.saved-card.trashed{opacity:.55}
+.saved-main{flex:1;min-width:0}.saved-title{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.saved-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.selection-check{width:26px;height:26px;border:2px solid var(--muted);border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.selection-check.on{background:var(--accent-strong);border-color:var(--accent-strong);color:white}
+.saved-empty{text-align:center;color:var(--muted);padding:70px 20px}
+.saved-section-title{font-size:15px;font-weight:700;color:var(--muted);margin:28px 0 10px;padding-left:3px}
+.trashed-actions{display:flex;gap:6px}
+.selection-check{display:none}.selection-mode .selection-check{display:flex}.selection-trash{display:none!important;flex:0 0 42px}
+.selection-mode.has-selection .selection-trash{display:inline-flex!important}
+.danger-fill{background:var(--danger)!important;color:#fff!important;border-color:var(--danger)!important}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+.modal-backdrop.open{display:flex}
+.modal{width:min(360px,100%);background:var(--surface);border-radius:18px;padding:20px;box-shadow:0 15px 50px rgba(0,0,0,.25)}
+.modal h3{margin:0 0 8px;font-size:19px}.modal p{margin:0;color:var(--muted);line-height:1.45}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+@media(max-width:500px){.main-title{margin-top:52px}.topbar-left,.topbar-right{width:100px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<section id="mainScreen" class="screen main-screen active">
+  <div class="theme-wrap">
+    <button id="themeBtn" class="theme-button">Theme</button>
+    <div id="themeMenu" class="theme-menu"></div>
+  </div>
+  <h1 class="main-title">Lists 3.0</h1>
+  <div class="main-buttons">
+    <button id="newListBtn" class="main-btn">Create New List</button>
+    <button id="savedBtn" class="main-btn">Saved Lists</button>
+  </div>
+</section>
+
+<section id="savedScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-left"><button id="savedBackBtn" class="icon-btn" aria-label="Back">‹</button></div>
+    <div class="topbar-center">Saved Lists</div>
+    <div class="topbar-right">
+      <button id="selectBtn" class="text-btn">Select</button>
+      <button id="savedTrashBtn" class="icon-btn trash-btn selection-trash" aria-label="Trash selected"></button>
+    </div>
+  </div>
+  <div id="savedListContainer" class="saved-body"></div>
+</section>
+
+<section id="editorScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-left"><button id="editorLeftBtn" class="icon-btn" aria-label="Back or discard">‹</button></div>
+    <div id="editorTitle" class="topbar-center">New List</div>
+    <div class="topbar-right">
+      <button id="editorDoneBtn" class="text-btn">Done</button>
+      <button id="editorTrashBtn" class="icon-btn trash-btn" aria-label="Trash list" style="display:none"></button>
+    </div>
+  </div>
+  <div class="editor-body">
+    <div class="list-name-wrap"><input id="listNameInput" class="list-name" placeholder="List name" autocomplete="off"></div>
+    <div class="mode-bar">
+      <div><div class="mode-label">Checklist Mode</div><div class="mode-help">Turn on circles for completing items</div></div>
+      <label class="switch"><input id="modeToggle" type="checkbox"><span class="slider"></span></label>
+    </div>
+    <div class="list-area">
+      <div id="activeTasks"></div>
+    </div>
+    <div id="completedSection" style="display:none">
+      <div class="completed-title">Completed</div>
+      <div class="list-area"><div id="completedTasks"></div></div>
+    </div>
+  </div>
+</section>
+</div>
+
+<div id="modalBackdrop" class="modal-backdrop">
+  <div class="modal">
+    <h3 id="modalTitle"></h3><p id="modalMessage"></p>
+    <div id="modalActions" class="modal-actions"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const $=id=>document.getElementById(id);
+const KEY="lists3-data-v1";
+const THEME_KEY="lists3-theme-v1";
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const trashIcon=()=>`<svg class="trash-svg" viewBox="0 0 24 24" aria-hidden="true">
+  <path d="M5 7h14M9 7V4h6v3M8 10v7M12 10v7M16 10v7M6.5 7l1 14h9l1-14"/>
+</svg>`;
+
+
+const state={
+  lists:[],
+  editingId:null,
+  editingFromSaved:false,
+  dirty:false,
+  selectionMode:false,
+  selectedIds:new Set()
+};
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function normalizeTasks(tasks){
+  if(!Array.isArray(tasks)||!tasks.length)return [{id:uid(),text:"",done:false}];
+  return tasks.map(t=>({id:t.id||uid(),text:String(t.text??""),done:!!t.done}));
+}
+function saveData(){
+  localStorage.setItem(KEY,JSON.stringify(state.lists));
+}
+function loadData(){
+  try{
+    const x=JSON.parse(localStorage.getItem(KEY)||"[]");
+    state.lists=Array.isArray(x)?x.map(l=>({
+      id:l.id||uid(),name:l.name||"Untitled List",checklist:!!l.checklist,
+      tasks:normalizeTasks(l.tasks),updatedAt:l.updatedAt||Date.now(),trashed:!!l.trashed
+    })):[];
+  }catch{state.lists=[]}
+}
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+function openModal(title,message,buttons){
+  return new Promise(resolve=>{
+    $("modalTitle").textContent=title;
+    $("modalMessage").textContent=message;
+    const a=$("modalActions");a.innerHTML="";
+    buttons.forEach(b=>{
+      const btn=document.createElement("button");
+      btn.className="text-btn "+(b.className||"");
+      btn.textContent=b.label;
+      btn.onclick=()=>{$("modalBackdrop").classList.remove("open");resolve(b.value)};
+      a.appendChild(btn);
+    });
+    $("modalBackdrop").classList.add("open");
+  });
+}
+function autoSize(el){
+  el.style.height="auto";
+  el.style.height=Math.max(32,el.scrollHeight)+"px";
+}
+function currentTasks(){
+  return [...document.querySelectorAll(".task-row")].map(row=>({
+    id:row.dataset.id,
+    text:row.querySelector(".task-input").value,
+    done:row.querySelector(".check").classList.contains("checked")
+  }));
+}
+function updateNumbers(){
+  document.querySelectorAll("#activeTasks .task-row").forEach((r,i)=>r.querySelector(".number").textContent=(i+1)+".");
+}
+function updateModeUI(){
+  const on=$("modeToggle").checked;
+  document.querySelectorAll(".task-row").forEach(r=>{
+    r.classList.toggle("no-check",!on);
+    const c=r.querySelector(".check");
+    c.style.display=on?"flex":"none";
+  });
+  const hasCompleted=on && $("completedTasks").children.length>0;
+  $("completedSection").style.display=hasCompleted?"block":"none";
+}
+function renderEditor(tasks){
+  const all=normalizeTasks(tasks);
+  const active=all.filter(t=>!t.done),completed=all.filter(t=>t.done);
+  $("activeTasks").innerHTML="";
+  $("completedTasks").innerHTML="";
+  active.forEach((t,i)=>addTaskRow(t,false,i));
+  completed.forEach((t,i)=>addTaskRow(t,true,i));
+  updateModeUI();
+  document.querySelectorAll(".task-input").forEach(autoSize);
+}
+function addTaskRow(task,done,index){
+  const row=document.createElement("div");
+  row.className="task-row";
+  row.dataset.id=task.id;
+  row.draggable=!done;
+  row.innerHTML=`<div class="number">${done?"":index+1+"."}</div>
+    <textarea class="task-input" rows="1" placeholder="${done?"":"Item"}"></textarea>
+    <button class="check ${done?"checked":""}" aria-label="Complete item">${done?"✓":""}</button>`;
+  const input=row.querySelector(".task-input");
+  input.value=task.text;
+  input.addEventListener("input",()=>{state.dirty=true;autoSize(input)});
+  input.addEventListener("keydown",handleTaskKey);
+  row.querySelector(".check").onclick=()=>toggleDone(row);
+  if(!done){
+    const handle=row.querySelector(".number");
+    handle.draggable=true;
+    handle.addEventListener("dragstart",e=>{
+      e.stopPropagation();
+      e.dataTransfer.effectAllowed="move";
+      e.dataTransfer.setData("text/plain",task.id);
+      row.classList.add("dragging");
+    });
+    handle.addEventListener("dragend",()=>row.classList.remove("dragging"));
+    row.addEventListener("dragover",e=>e.preventDefault());
+    row.addEventListener("drop",e=>{
+      e.preventDefault();
+      const from=e.dataTransfer.getData("text/plain"),to=row.dataset.id;
+      if(!from||from===to)return;
+      const rows=[...$("activeTasks").children];
+      const fr=rows.find(r=>r.dataset.id===from);
+      if(!fr)return;
+      if(rows.indexOf(fr)<rows.indexOf(row))row.after(fr);else row.before(fr);
+      updateNumbers();state.dirty=true;
+    });
+  }
+  (done?$("completedTasks"):$("activeTasks")).appendChild(row);
+  if(!$("modeToggle").checked){
+    row.classList.add("no-check");
+    row.querySelector(".check").style.display="none";
+  }
+}
+function handleTaskKey(e){
+  if(e.key==="Enter"){
+    e.preventDefault();
+    const row=e.target.closest(".task-row");
+    const rows=[...$("activeTasks").children];
+    const i=rows.indexOf(row);
+    if(e.target.value.trim()===""){
+      const next=rows[i+1]?.querySelector(".task-input");
+      (next||e.target).focus();
+      return;
+    }
+    const t={id:uid(),text:"",done:false};
+    addTaskRow(t,false,i+1);
+    const inserted=[...$("activeTasks").children].find(r=>r.dataset.id===t.id);
+    if(i+1<rows.length)rows[i+1].before(inserted);
+    inserted.classList.toggle("no-check",!$("modeToggle").checked);
+    inserted.querySelector(".check").style.display=$("modeToggle").checked?"flex":"none";
+    updateNumbers();state.dirty=true;
+    const ni=inserted.querySelector(".task-input");ni.focus();autoSize(ni);
+  }
+  if((e.key==="Backspace"||e.key==="Delete")&&e.target.value===""){
+    e.preventDefault();e.stopPropagation();
+    const rows=[...$("activeTasks").children],row=e.target.closest(".task-row"),i=rows.indexOf(row);
+    if(i>0){
+      const prev=rows[i-1].querySelector(".task-input");
+      row.remove();updateNumbers();state.dirty=true;
+      requestAnimationFrame(()=>{prev.focus();prev.setSelectionRange(prev.value.length,prev.value.length)});
+    }
+  }
+}
+function toggleDone(row){
+  if(!$("modeToggle").checked)return;
+  const tasks=currentTasks().map(t=>t.id===row.dataset.id?{...t,done:!t.done}:t);
+  renderEditor(tasks);state.dirty=true;
+}
+function collectEditorList(){
+  const tasks=currentTasks();
+  return {
+    id:state.editingId||uid(),
+    name:$("listNameInput").value.trim()||"Untitled List",
+    checklist:$("modeToggle").checked,
+    tasks:tasks.length?tasks:[{id:uid(),text:"",done:false}],
+    updatedAt:Date.now(),
+    trashed:false
+  };
+}
+function saveEditor(){
+  const list=collectEditorList();
+  const i=state.lists.findIndex(x=>x.id===list.id);
+  if(i>=0)state.lists[i]={...state.lists[i],...list};
+  else state.lists.unshift(list);
+  state.editingId=list.id;
+  saveData();
+  state.dirty=false;
+}
+function openNewList(){
+  state.editingId=null;state.editingFromSaved=false;state.dirty=false;
+  $("editorTitle").textContent="New List";
+  $("editorLeftBtn").innerHTML=trashIcon();
+  $("editorLeftBtn").classList.add("trash-btn");
+  $("editorDoneBtn").style.display="inline-flex";
+  $("editorTrashBtn").style.display="none";
+  $("listNameInput").value="";
+  $("modeToggle").checked=false;
+  renderEditor([{id:uid(),text:"",done:false}]);
+  showScreen("editorScreen");
+  setTimeout(()=>document.querySelector(".task-input")?.focus(),50);
+}
+function openSavedList(id){
+  const list=state.lists.find(x=>x.id===id);
+  if(!list||list.trashed)return;
+  state.editingId=id;state.editingFromSaved=true;state.dirty=false;
+  $("editorTitle").textContent="Edit List";
+  $("editorLeftBtn").textContent="‹";
+  $("editorLeftBtn").classList.remove("trash-btn");
+  $("editorDoneBtn").style.display="none";
+  $("editorTrashBtn").style.display="inline-flex";
+  $("listNameInput").value=list.name;
+  $("modeToggle").checked=!!list.checklist;
+  renderEditor(list.tasks);
+  showScreen("editorScreen");
+}
+function renderSaved(){
+  $("selectBtn").textContent=state.selectionMode?"Unselect":"Select";
+  $("savedScreen").classList.toggle("selection-mode",state.selectionMode);
+  $("savedScreen").classList.toggle("has-selection",state.selectionMode&&state.selectedIds.size>0);
+  const box=$("savedListContainer");box.innerHTML="";
+  const active=state.lists.filter(x=>!x.trashed),trash=state.lists.filter(x=>x.trashed);
+  const make=list=>{
+    const card=document.createElement("div");
+    card.className="saved-card"+(list.trashed?" trashed":"")+(state.selectedIds.has(list.id)?" selected":"");
+    card.dataset.id=list.id;
+    card.innerHTML=`<div class="selection-check ${state.selectedIds.has(list.id)?"on":""}">${state.selectedIds.has(list.id)?"✓":""}</div>
+      <div class="saved-main"><div class="saved-title">${esc(list.name)}</div>
+      <div class="saved-meta">${list.tasks.length} item${list.tasks.length===1?"":"s"} · ${list.tasks.filter(t=>t.done).length} completed</div></div>
+      ${list.trashed?'<div class="trashed-actions"><button class="icon-btn restore-list">↶</button><button class="icon-btn trash-btn permanent"></button></div>':'<button class="icon-btn open-arrow">›</button>'}`;
+    const permanentButton=card.querySelector(".permanent");
+    if(permanentButton) permanentButton.innerHTML=trashIcon();
+    card.onclick=async e=>{
+      if(e.target.closest(".restore-list")){list.trashed=false;saveData();renderSaved();return}
+      if(e.target.closest(".permanent")){await permanentlyDelete(list.id);return}
+      if(state.selectionMode){state.selectedIds.has(list.id)?state.selectedIds.delete(list.id):state.selectedIds.add(list.id);renderSaved()}
+      else openSavedList(list.id);
+    };
+    return card;
+  };
+  if(active.length){const sec=document.createElement("div");sec.className="saved-list";active.forEach(x=>sec.appendChild(make(x)));box.appendChild(sec)}
+  else {const e=document.createElement("div");e.className="saved-empty";e.textContent="No saved lists yet. Create your first list to see it here.";box.appendChild(e)}
+  if(trash.length){const h=document.createElement("div");h.className="saved-section-title";h.textContent="Trashed Lists";box.appendChild(h);const sec=document.createElement("div");sec.className="saved-list";trash.forEach(x=>sec.appendChild(make(x)));box.appendChild(sec)}
+}
+async function permanentlyDelete(id){
+  const a=await openModal("Delete permanently?","This list will be permanently deleted.",[
+    {label:"Cancel",value:"cancel"},{label:"Delete",value:"delete",className:"danger-fill"}]);
+  if(a==="delete"){state.lists=state.lists.filter(x=>x.id!==id);saveData();renderSaved()}
+}
+async function deleteCurrent(){
+  if(!state.editingFromSaved){
+    const a=await openModal("Discard this list?","This new list has not been saved yet. Discard it?",[
+      {label:"Cancel",value:"cancel"},{label:"Discard",value:"discard",className:"danger-fill"}]);
+    if(a==="discard"){state.editingId=null;state.dirty=false;showScreen("mainScreen")}
+    return;
+  }
+  const a=await openModal("Move list to Trash?","This list will be removed from Saved Lists and placed in Trashed Lists.",[
+    {label:"Cancel",value:"cancel"},{label:"Trash",value:"trash",className:"danger-fill"}]);
+  if(a==="trash"){
+    const i=state.lists.findIndex(x=>x.id===state.editingId);
+    if(i>=0)state.lists[i].trashed=true;
+    saveData();state.dirty=false;showScreen("savedScreen");renderSaved();
+  }
+}
+async function deleteSelected(){
+  if(!state.selectedIds.size)return;
+  const a=await openModal("Move selected lists to Trash?","The selected lists will be moved to Trashed Lists.",[
+    {label:"Cancel",value:"cancel"},{label:"Trash",value:"trash",className:"danger-fill"}]);
+  if(a==="trash"){
+    state.lists.forEach(x=>{if(state.selectedIds.has(x.id))x.trashed=true});
+    state.selectedIds.clear();state.selectionMode=false;saveData();renderSaved();
+  }
+}
+function doneEditing(){
+  if(state.editingFromSaved){
+    saveEditor();
+    showScreen("savedScreen");
+    renderSaved();
+    return;
+  }
+  saveEditor();
+  showScreen("mainScreen");
+}
+
+$("newListBtn").onclick=openNewList;
+$("savedBtn").onclick=()=>{state.selectionMode=false;state.selectedIds.clear();showScreen("savedScreen");renderSaved()};
+$("savedBackBtn").onclick=()=>{state.selectionMode=false;state.selectedIds.clear();showScreen("mainScreen")};
+$("selectBtn").onclick=()=>{
+  state.selectionMode=!state.selectionMode;
+  if(!state.selectionMode)state.selectedIds.clear();
+  renderSaved();
+};
+$("savedTrashBtn").onclick=deleteSelected;
+$("editorDoneBtn").onclick=doneEditing;
+$("editorLeftBtn").onclick=()=>state.editingFromSaved?showScreen("savedScreen"):deleteCurrent();
+$("editorTrashBtn").onclick=deleteCurrent;
+
+$("listNameInput").addEventListener("input",()=>state.dirty=true);
+$("modeToggle").addEventListener("change",()=>{
+  const on=$("modeToggle").checked;
+  const tasks=currentTasks().map(t=>({...t,done:on?t.done:false}));
+  state.dirty=true;renderEditor(tasks);
+});
+
+window.addEventListener("beforeunload",()=>{if(state.dirty&&state.editingFromSaved)saveEditor()});
+
+const themes={
+  light:{bg:"#fafafa",surface:"#ffffff",surface2:"#f2f2f2",text:"#202124",muted:"#70757a",border:"#dedee2",accent:"#eeeeee",strong:"#777777",danger:"#d93025"},
+  red:{bg:"#fff7f7",surface:"#fff0f0",surface2:"#ffe4e4",text:"#321919",muted:"#806060",border:"#efd2d2",accent:"#ffe0e0",strong:"#b94a48",danger:"#c62828"},
+  orange:{bg:"#fff9f2",surface:"#fff2e3",surface2:"#ffe6ca",text:"#352719",muted:"#806b54",border:"#eed9bd",accent:"#ffe7ca",strong:"#c47724",danger:"#c62828"},
+  yellow:{bg:"#fffdf3",surface:"#fff9d9",surface2:"#fff0b8",text:"#352f16",muted:"#81784f",border:"#eee2aa",accent:"#fff1b9",strong:"#b09217",danger:"#c62828"},
+  green:{bg:"#f5fbf5",surface:"#eaf6eb",surface2:"#dcefdc",text:"#17321d",muted:"#617566",border:"#cbdccb",accent:"#dff0e1",strong:"#388e4b",danger:"#c62828"},
+  blue:{bg:"#f4f9fd",surface:"#eaf3fb",surface2:"#dceaf6",text:"#173047",muted:"#607386",border:"#cad9e7",accent:"#dcecfb",strong:"#2878b9",danger:"#c62828"},
+  purple:{bg:"#faf6fc",surface:"#f2eaf7",surface2:"#e8dcf0",text:"#30223a",muted:"#74677d",border:"#d9cce0",accent:"#eadcf1",strong:"#7b4aa2",danger:"#c62828"},
+  dark:{bg:"#111214",surface:"#1c1d20",surface2:"#292b30",text:"#f1f3f4",muted:"#a7aab0",border:"#3a3c41",accent:"#30363f",strong:"#76a8ff",danger:"#ff6b60"}
+};
+function applyTheme(name){
+  const t=themes[name]||themes.light;
+  const r=document.documentElement;
+  r.style.setProperty("--bg",t.bg);r.style.setProperty("--surface",t.surface);r.style.setProperty("--surface2",t.surface2);
+  r.style.setProperty("--text",t.text);r.style.setProperty("--muted",t.muted);r.style.setProperty("--border",t.border);
+  r.style.setProperty("--accent",t.accent);r.style.setProperty("--accent-strong",t.strong);r.style.setProperty("--danger",t.danger);
+  localStorage.setItem(THEME_KEY,name);
+  document.querySelectorAll(".theme-option").forEach(x=>x.classList.toggle("selected",x.dataset.theme===name));
+}
+function buildThemes(){
+  const names=[
+    ["light","Light","#ffffff","#fafafa"],
+    ["red","Red","#fff0f0","#b94a48"],
+    ["orange","Orange","#fff2e3","#c47724"],
+    ["yellow","Yellow","#fff9d9","#b09217"],
+    ["green","Green","#eaf6eb","#388e4b"],
+    ["blue","Blue","#eaf3fb","#2878b9"],
+    ["purple","Purple","#f2eaf7","#7b4aa2"],
+    ["dark","Dark","#1c1d20","#111214"]
+  ];
+  $("themeMenu").innerHTML=names.map(([id,n,a,b])=>
+    `<button class="theme-option" data-theme="${id}">
+      <span class="swatches"><i class="swatch" style="background:${a}"></i><i class="swatch" style="background:${b}"></i></span>
+      <span class="theme-name">${n}</span>
+    </button>`
+  ).join("");
+  $("themeMenu").querySelectorAll(".theme-option").forEach(b=>
+    b.onclick=()=>{applyTheme(b.dataset.theme);$("themeMenu").classList.remove("open")}
+  );
+}
+$("themeBtn").onclick=e=>{$("themeMenu").classList.toggle("open");e.stopPropagation()};
+document.addEventListener("click",e=>{if(!e.target.closest(".theme-wrap"))$("themeMenu").classList.remove("open")});
+
+loadData();buildThemes();applyTheme(localStorage.getItem(THEME_KEY)||"light");
+$("savedTrashBtn").innerHTML=trashIcon();
+$("editorTrashBtn").innerHTML=trashIcon();
+</script>
+</body>
+</html>
